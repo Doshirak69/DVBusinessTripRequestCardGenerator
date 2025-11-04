@@ -1,0 +1,19 @@
+{
+  "BusinessTripRequest": {
+    "CardKindName": "Заявка на командировку",
+    "AttachmentFilePath": "C:\\Users\\dahen\\Downloads\\проблемс.txt", 
+    "TravelingEmployeeAccount": "ENGINEER\\kolesnikova.sn",
+    "TripAllowanceAmount": 15000.50,
+    "ReasonForTravelItem": "Участие в конференции",
+    "DateFrom": "2025-10-01T09:00:00",
+    "DateTo": "2025-10-11T18:00:00",
+    "City": "Оренбург",
+	"Tickets": "Авиа",
+	"ProcessingEmployee": "ENGINEER\\mikhailov.sa",
+    "ApproverAccountNames": [
+      "ENGINEER\\admin",
+      "ENGINEER\\mikhailov.sa"
+    ],
+	"WorkflowState": "На согласовании"
+  }
+}

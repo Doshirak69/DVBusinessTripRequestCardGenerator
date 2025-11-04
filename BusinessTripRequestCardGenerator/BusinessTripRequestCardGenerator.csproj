@@ -14,4 +14,10 @@
     <PackageReference Update="DocsVision.*" ExcludeAssets="contentFiles" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="businessTripData.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  
 </Project>

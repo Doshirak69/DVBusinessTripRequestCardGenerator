@@ -16,16 +16,16 @@ namespace BusinessTripRequestCardGenerator
             var username = appSettings["Username"];
             var password = appSettings["Password"];
 
+            var sessionManager = SessionManager.CreateInstance();
+            sessionManager.Connect(serverUrl, string.Empty, username, password);
+            UserSession? session = null;
             try
             {
                 var mode = AskMode();
                 var cardsToMake = mode == WorkMode.Random ? AskCardsCount()
                                                 : 1;
 
-                var sessionManager = SessionManager.CreateInstance();
-                sessionManager.Connect(serverUrl, string.Empty, username, password);
-
-                var session = sessionManager.CreateSession();
+                session = sessionManager.CreateSession();
                 var context = CreateContext(session);
                 var dvSrv = new BusinessTripCardService(context);
 
@@ -46,6 +46,12 @@ namespace BusinessTripRequestCardGenerator
             {
                 Console.WriteLine($"\nКритическая ошибка: {ex}");
             }
+            finally
+            {
+                session?.Close();
+            }
+           
+                
             Console.ReadKey();
         }
 

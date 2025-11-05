@@ -3,25 +3,30 @@ using DocsVision.BackOffice.ObjectModel.Services;
 using DocsVision.BackOffice.ObjectModel;
 using DocsVision.Platform.ObjectModel.Search;
 using DocsVision.Platform.ObjectModel;
+using System.Text.Json;
 
 namespace BusinessTripRequestCardGenerator
 {
-    class DocsVisionService
+    class BusinessTripCardService
     {
         private readonly ObjectContext _context;
 
-        public DocsVisionService(ObjectContext context)
+        public BusinessTripCardService(ObjectContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public void ProcessBusinessTripRequest(BusinessTripRequestData dto)
+        public void ProcessBusinessTripRequest(BusinessTripRequestDto template)
         {
             Console.WriteLine("Старт обработки заявки на командировку...");
 
-            Document newCard = CreateBusinessTripCard(dto.CardKindName);
+            var dto = JsonSerializer.Deserialize<BusinessTripRequestDto>(
+                JsonSerializer.Serialize(template))!;
 
-            List<string> unfilledFields = FillMainInfo(newCard.MainInfo, dto);
+            Document newCard = CreateBusinessTripCard(dto.View);
+
+            FillMainInfo(newCard.MainInfo, dto);
+
             Console.WriteLine("Поля карточки в MainInfo заполнены.");
 
             var optionalActionsLog = new List<string>();
@@ -35,16 +40,16 @@ namespace BusinessTripRequestCardGenerator
 
             if (!string.IsNullOrWhiteSpace(dto.AttachmentFilePath))
             {
-                _context.SaveObject(newCard);
+                _context.AcceptChanges();
                 string fileMsg = AttachMainFileToCard(newCard, dto.AttachmentFilePath);
                 optionalActionsLog.Add(fileMsg);
             }
 
+            _context.SaveObject(newCard);
+
             if (!string.IsNullOrWhiteSpace(dto.WorkflowState))
             {
-                _context.SaveObject(newCard);
-
-                var targetEn = MapStateName(dto.WorkflowState);
+                var targetEn = MappingService.MapStateName(dto.WorkflowState);
                 if (!string.IsNullOrWhiteSpace(targetEn))
                 {
                     var navigator = new CardStateNavigator(_context);
@@ -52,11 +57,9 @@ namespace BusinessTripRequestCardGenerator
                     optionalActionsLog.Add(msg);
                 }
             }
-            _context.SaveObject(newCard);
-
-            PrintOptionalActionsSummary(optionalActionsLog);
 
             _context.AcceptChanges();
+            _context.SaveObject(newCard);
 
             Console.WriteLine("Обработка заявки на командировку успешно завершена.");
             Console.WriteLine($"Подготовлена карточка '{newCard.MainInfo.Name}' (ID: {newCard.GetObjectId()}).");
@@ -73,7 +76,7 @@ namespace BusinessTripRequestCardGenerator
             return newCard;
         }
 
-        private List<string> FillMainInfo(DocumentMainInfo mainInfo, BusinessTripRequestData dto)
+        private void FillMainInfo(DocumentMainInfo mainInfo, BusinessTripRequestDto dto)
         {
             var unfilledFields = new List<string>();
 
@@ -81,13 +84,13 @@ namespace BusinessTripRequestCardGenerator
             if (travelingEmployee != null)
             {
                 mainInfo["TravelingEmployee"] = travelingEmployee.GetObjectId();
-                StaffEmployee? manager = FindEmployeeManager(travelingEmployee);
+                StaffEmployee? manager = travelingEmployee.GetManager(_context);
                 if (manager != null)
                 {
                     mainInfo["Manager"] = manager.GetObjectId();
                     mainInfo["PhoneNumber"] = manager.Phone;
                 }
-                PartnersCompany? organization = FindPartnersCompanyByName(travelingEmployee);
+                PartnersCompany? organization = travelingEmployee.GetPartnersOrganization(_context);
                 if (organization != null)
                 {
                     mainInfo["OrganizationName"] = organization.GetObjectId();
@@ -117,14 +120,10 @@ namespace BusinessTripRequestCardGenerator
 
             if (!string.IsNullOrWhiteSpace(dto.Tickets))
             {
-                var tickets = MapTickets(dto.Tickets);
-                if (tickets.HasValue)
-                {
-                    mainInfo["Tickets"] = (int)tickets.Value;
-                }
+                var tik = MappingService.MapTickets(dto.Tickets); 
+                if (tik.HasValue)
+                    mainInfo["Tickets"] = (int)tik.Value;
             }
-
-            return unfilledFields;
         }
 
         private string AddApproversToCard(Document card, IEnumerable<string> approverAccountNames)
@@ -194,13 +193,6 @@ namespace BusinessTripRequestCardGenerator
             return staffService.FindEmpoyeeByAccountName(accountName);
         }
 
-        private StaffEmployee? FindEmployeeManager(StaffEmployee employee)
-        {
-            if (employee == null) return null;
-            IStaffService staffService = _context.GetService<IStaffService>();
-            return staffService.GetEmployeeManager(employee);
-        }
-
         private BaseUniversalItem? GetUniversalItemByName(string dictionaryName, string itemName)
         {
             IBaseUniversalService universalService = _context.GetService<IBaseUniversalService>();
@@ -223,60 +215,7 @@ namespace BusinessTripRequestCardGenerator
             return item;
         }
 
-        private PartnersCompany? FindPartnersCompanyByName(StaffEmployee employee)
-        {
-            IPartnersService partnersService = _context.GetService<IPartnersService>();
-            StaffUnit employeeDepartment = employee.Unit;
-            StaffUnit topLevelEmployeeUnit = employeeDepartment;
-
-            while (topLevelEmployeeUnit.ParentUnit != null &&
-                   topLevelEmployeeUnit.ParentUnit.Type != StaffUnitType.Organization)
-            {
-                topLevelEmployeeUnit = topLevelEmployeeUnit.ParentUnit;
-            }
-
-            var targetCompany = partnersService.FindSameCompanyOnServer(null, topLevelEmployeeUnit.Name, "");
-            //var department = targetCompany.Companies
-            //                                 .FirstOrDefault(c => c.Name == employeeDepartment.Name);
-            return targetCompany;
-        }
-
-        private void PrintOptionalActionsSummary(List<string> optionalActionsLog)
-       {
-            if (optionalActionsLog == null || optionalActionsLog.Count == 0)
-                return;
-
-            Console.WriteLine("\n--- Результат опциональных действий ---");
-            foreach (var line in optionalActionsLog)
-                Console.WriteLine($"- {line}");
-            Console.WriteLine("---------------------------------------");
-        }
-
-        private static Tickets? MapTickets(string? name) => name?.Trim() switch
-        {
-            "Авиа" => Tickets.Avia,
-            "Поезд" => Tickets.Rail,
-            _ => null
-        };
-
-        public enum Tickets
-        {
-            Avia,
-            Rail,
-        }
-        private string? MapStateName(string name)
-        {
-            return StateAliases.TryGetValue(name, out var canonical) ? canonical : null;
-        }
-
-        private static readonly Dictionary<string, string> StateAliases =
-            new(StringComparer.OrdinalIgnoreCase)
-            {
-                ["Проект"] = "Project",
-                ["На согласовании"] = "Under Review",
-                ["На оформлении"] = "On Registration",
-                ["Закрыто"] = "Closed",
-            };
+       
 
     }
 }

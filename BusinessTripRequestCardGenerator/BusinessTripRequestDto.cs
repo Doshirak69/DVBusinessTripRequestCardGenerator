@@ -1,8 +1,9 @@
 ﻿
 namespace BusinessTripRequestCardGenerator
 {
-    class BusinessTripRequestData
+    class BusinessTripRequestDto
     {
+        public string View { get; set; } = string.Empty;
         public string CardKindName { get; set; } = string.Empty;
         public string TravelingEmployeeAccount { get; set; } = string.Empty;
         public string? ManagerAccount { get; set; }

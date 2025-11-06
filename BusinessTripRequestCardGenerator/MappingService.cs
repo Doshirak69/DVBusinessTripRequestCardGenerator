@@ -12,7 +12,7 @@ namespace BusinessTripRequestCardGenerator
         public static readonly IReadOnlyList<string> CityNames = new[]
         {
             "Москва",
-            "Санкт-Петербург",
+            "Мурманск",
             "Оренбург",
             "Саратов"
         };

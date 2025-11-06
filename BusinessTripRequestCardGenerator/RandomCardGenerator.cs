@@ -51,9 +51,9 @@ namespace BusinessTripRequestCardGenerator
             dto.Tickets = PickRandom(MappingService.TicketDisplayNames);
             dto.WorkflowState = PickRandom(MappingService.StateRuDisplayNames);
             dto.City = PickRandom(MappingService.CityNames);
-
+            dto.ReasonForTravelItem = dto.ReasonForTravelItem = $"{dto.View} на имя {traveler.FullName} от {dto.DateFrom:d}";
             dto.AttachmentFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-                                                  "DefaultAttachment.txt");
+                "Data/DefaultAttachment.txt");
             return dto;
         }
         private T PickRandom<T>(IReadOnlyList<T> list) => list[_random.Next(list.Count)];

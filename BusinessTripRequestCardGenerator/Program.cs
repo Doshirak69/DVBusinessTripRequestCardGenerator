@@ -71,9 +71,9 @@ namespace BusinessTripRequestCardGenerator
             return n > 0 ? n : 1;
         }
 
-        private static void RunRandomGeneration(BusinessTripCardService dvSrv, ObjectContext ctx, int count)
+        private static void RunRandomGeneration(BusinessTripCardService dvSrv, ObjectContext context, int count)
         {
-            var generator = new RandomCardGenerator(ctx);
+            var generator = new RandomCardGenerator(context);
             for (int i = 0; i < count; i++)
             {
                 var dto = generator.CreateRandom();

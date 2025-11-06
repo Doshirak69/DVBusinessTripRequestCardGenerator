@@ -15,8 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="businessTripData.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <None Update="Data\DefaultAttachment.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
   

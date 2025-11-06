@@ -34,6 +34,7 @@ namespace BusinessTripRequestCardGenerator
             if (dto.ApproverAccountNames != null &&
                 dto.ApproverAccountNames.Any(a => !string.IsNullOrWhiteSpace(a)))
             {
+                _context.AcceptChanges();
                 string approversMsg = AddApproversToCard(newCard, dto.ApproverAccountNames);
                 optionalActionsLog.Add(approversMsg);
             }
@@ -45,10 +46,9 @@ namespace BusinessTripRequestCardGenerator
                 optionalActionsLog.Add(fileMsg);
             }
 
-            _context.SaveObject(newCard);
-
             if (!string.IsNullOrWhiteSpace(dto.WorkflowState))
             {
+                _context.AcceptChanges();
                 var targetEn = MappingService.MapStateName(dto.WorkflowState);
                 if (!string.IsNullOrWhiteSpace(targetEn))
                 {
@@ -71,7 +71,7 @@ namespace BusinessTripRequestCardGenerator
             KindsCardKind cardKind = GetCardKindByName(cardKindName);
 
             Document newCard = docSvc.CreateDocument(null, cardKind) 
-                ?? throw new InvalidOperationException($"Не удалось создать карточку вида «{cardKindName}».");
+                ?? throw new InvalidOperationException($"Не удалось создать карточку вида '{cardKindName}'.");
             newCard.MainInfo.Name = $"Заявка на командировку от {DateTime.Now.ToShortDateString()}";
             return newCard;
         }
@@ -178,12 +178,9 @@ namespace BusinessTripRequestCardGenerator
         private KindsCardKind GetCardKindByName(string cardKindName)
         {
             KindsCardKind cardKind = _context.FindObject<KindsCardKind>(
-                new QueryObject(KindsCardKind.NameProperty.Name, cardKindName));
-
-            if (cardKind == null)
-            {
-                throw new Exception($"Вид карточки '{cardKindName}' не найден.");
-            }
+                new QueryObject(KindsCardKind.NameProperty.Name, cardKindName)) 
+                ?? throw new Exception($"Вид карточки '{cardKindName}' не найден.");
+            
             return cardKind;
         }
 
@@ -214,8 +211,6 @@ namespace BusinessTripRequestCardGenerator
 
             return item;
         }
-
-       
 
     }
 }
